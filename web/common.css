@@ -1,0 +1,46 @@
+/* Base compartida por el hub y la app de prueba: colores de retroachievements.org. */
+:root {
+  --bg: #161616;
+  --panel: #222;
+  --line: #333;
+  --field: #3a3a3a;
+  --text: #e5e5e5;
+  --muted: #999;
+  --gold: #cc9900;
+  --gold-hi: #e6ac00;
+  --error: #e06c6c;
+  --test: #e03030;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font: clamp(15px, .55vw + 9px, 20px)/1.4 system-ui, sans-serif;
+}
+
+/* Marca: "Retro" dorado + "Achievements" blanco. */
+.brand { margin: 0; font-size: 1.5em; color: var(--gold); }
+.brand b { color: var(--text); font-weight: 600; }
+
+h2 { margin: 0 0 10px; font-size: .8em; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+input, button {
+  display: block; width: 100%; box-sizing: border-box; margin: 0 0 12px;
+  padding: .65em .8em; font: inherit; border-radius: 4px;
+}
+input { background: var(--bg); border: 1px solid var(--field); color: var(--text); }
+input:focus { outline: none; border-color: var(--gold); }
+button { background: var(--gold); border: 0; color: var(--bg); font-weight: 600; cursor: pointer; }
+button:hover, button:focus { background: var(--gold-hi); outline: none; }
+button:disabled { opacity: .5; }
+/* Botón secundario (contorno). */
+button.ghost { width: auto; margin: 0; padding: .5em 1em; background: none; border: 1px solid var(--field); color: var(--text); }
+button.ghost:hover, button.ghost:focus { border-color: var(--gold); color: var(--gold); }
+
+.error { margin: 0 0 12px; color: var(--error); }
+.error:empty { display: none; }
+.hint { margin: 0 0 12px; font-size: .85em; color: var(--muted); }
+.hint a { color: var(--gold); }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 24px; box-sizing: border-box; }

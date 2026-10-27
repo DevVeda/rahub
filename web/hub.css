@@ -1,0 +1,67 @@
+/* Hub: pensado para la TV (horizontal). Bajo 900 px todo pasa a una columna (móvil). */
+
+.page { max-width: 1600px; margin: 0 auto; padding: 24px 32px; box-sizing: border-box; }
+
+/* ---------- Barra superior ---------- */
+.topbar { display: flex; align-items: center; gap: 16px; margin: 0 0 20px; }
+.subtitle { flex: 1; font-size: .85em; color: var(--muted); }
+#actions { display: flex; gap: 8px; }
+
+/* Formularios sueltos (login, Web API Key). */
+.form-card { width: min(380px, 100%); margin: 8vh auto 0; }
+.form-card.inline { margin-top: 0; }
+
+/* ---------- Hero: avatar y nombre a la izquierda, cifras a la derecha ---------- */
+.hero {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 28px;
+  margin: 0 0 20px; padding: 28px; border: 1px solid #3a3320; border-radius: 12px;
+  background: linear-gradient(120deg, #2b2510 0%, var(--panel) 55%);
+}
+.hero small { font-size: .8em; color: var(--muted); }
+.avatar { width: clamp(96px, 9vw, 168px); height: clamp(96px, 9vw, 168px); border: 2px solid var(--gold); border-radius: 12px; background: var(--bg); }
+.username { margin: 2px 0 4px; font-size: 2.4em; line-height: 1.1; font-weight: 700; color: #fff; word-break: break-word; }
+.motto { margin: 0; color: #bbb; font-style: italic; }
+.hero-side { display: flex; flex-direction: column; gap: 12px; min-width: min(440px, 40vw); }
+
+/* Cifras (3 por fila). */
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tiles div { padding: .6em .4em; border-radius: 8px; background: #161616cc; text-align: center; }
+.tiles b { display: block; font-size: 1.35em; color: var(--gold); }
+.tiles small { font-size: .75em; color: var(--muted); }
+
+.now-playing { padding: .5em .8em; border-left: 3px solid var(--gold); border-radius: 4px; background: #161616cc; font-size: .9em; }
+.now-playing small { display: block; font-size: .8em; color: var(--muted); }
+
+/* ---------- Paneles en 3 columnas ---------- */
+.columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+.panel { padding: 18px 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.panel + .panel { margin-top: 20px; }
+
+/* Fila de lista: imagen, título + detalle, dato a la derecha. */
+.item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #2c2c2c; }
+.item:first-of-type { border-top: 0; }
+.item img { flex: none; width: 2.8em; height: 2.8em; border-radius: 4px; background: var(--bg); }
+.item div { flex: 1; min-width: 0; }
+.item b, .item small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item b { font-weight: 600; }
+.item b.gold { color: var(--gold); }
+.item small { font-size: .8em; color: var(--muted); }
+.item span { flex: none; font-size: .8em; color: var(--muted); }
+.item.big img { width: 4.5em; height: 4.5em; }
+.item.big b, .item.big small { white-space: normal; }
+.panel .hint:last-child { margin: 8px 0 0; }
+
+.progress { height: 4px; margin-top: 4px; border-radius: 2px; background: var(--line); }
+.progress i { display: block; height: 100%; border-radius: 2px; background: var(--gold); }
+
+@media (max-width: 900px) {
+  .page { padding: 16px; }
+  .topbar { flex-wrap: wrap; }
+  .topbar .brand { flex: 1; font-size: 1.25em; }
+  .subtitle { display: none; }
+  button.ghost { padding: .4em .7em; font-size: .85em; }
+  .hero { grid-template-columns: auto 1fr; gap: 16px; padding: 18px; }
+  .hero-side { grid-column: 1 / -1; min-width: 0; }
+  .username { font-size: 1.7em; }
+  .columns { grid-template-columns: 1fr; }
+}

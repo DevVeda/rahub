@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang=en>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>RA Hub Test</title>
+<link rel=stylesheet href=/common.css>
+<style>
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+  .test-tag { margin-left: .4em; color: var(--test); font-style: normal; }
+  #status { padding: 28px 48px; border-radius: 12px; font-size: 2em; font-weight: 700; }
+  #status.off { color: var(--muted); }
+  #status b { color: var(--gold); }
+</style>
+<h1 class=brand>Retro<b>Achievements</b><i class=test-tag>TEST</i></h1>
+<div class=card id=status></div>
+<script src=/lib.js></script>
+<script src=/test.js></script>
