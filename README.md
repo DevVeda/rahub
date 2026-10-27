@@ -6,6 +6,8 @@ A background payload that signs in to [retroachievements.org](https://retroachie
 
 <p align="center"><img src="assets/icon0.png" width="128" alt="RA Hub icon"></p>
 
+<p align="center"><a href="https://ko-fi.com/T1K329H7HC"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"></a></p>
+
 ## Highlights
 
 - **Sign in once.** Apps get your session from `http://127.0.0.1:8045/session`.
