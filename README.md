@@ -28,12 +28,41 @@ Needs [Payload Manager](https://github.com/itsPLK/ps5-payload-manager) and an FT
 
 ## For app developers
 
+Everything below answers on the console itself only (127.0.0.1).
+
+**Session.** The signed-in user, so your app needn't ask for a password:
+
 ```sh
 curl http://127.0.0.1:8045/session
 # {"user":"YourName","token":"…","key":"…"}
 ```
 
-`token` is the Connect token, `key` the Web API key. Only answers on the console itself. **RA Hub Test** (`rahub-test.elf` in the release) is a reference client.
+`token` is the Connect token (rcheevos' `rc_client_begin_login_with_token`), `key` the Web API key.
+
+**RetroAchievements requests.** Apps without TLS of their own can send their `dorequest.php` calls (rcheevos) through RA Hub, which forwards them to RetroAchievements over HTTPS and returns RA's answer. POSTs need the `X-RAHub` header:
+
+```sh
+curl -X POST -H 'X-RAHub: 1' --data 'r=login2&u=YourName&t=…' http://127.0.0.1:8045/dorequest
+```
+
+**Achievement badges.** The PNG for a badge name (rcheevos' `badge_name`):
+
+```sh
+curl -o badge.png 'http://127.0.0.1:8045/badge?u=12345'
+```
+
+**GBA cheats.** A cheat file from [libretro-database](https://github.com/libretro/libretro-database)'s `cht/Nintendo - Game Boy Advance/` folder, by its exact file name (URL-encoded), as RetroArch's `.cht` text:
+
+```sh
+curl 'http://127.0.0.1:8045/cheats?f=Sonic%20Battle%20(World)%20(Code%20Breaker).cht'
+# cheats = 4
+# cheat0_desc = "…"
+# cheat0_code = "…"
+```
+
+Only `.cht` names from that folder are accepted (no paths). gba2ps5 uses it to refresh a game's cheats from its in-game menu.
+
+**RA Hub Test** (`rahub-test.elf` in the release) is a reference client.
 
 ## Build
 

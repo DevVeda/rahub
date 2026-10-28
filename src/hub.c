@@ -229,11 +229,61 @@ static void on_logout(int fd) {
   http_json(fd, 200, "{\"ok\":true}");
 }
 
+// Proxy para las apps de la PS5 (gba2ps5): mandan aquí el cuerpo de su petición a dorequest.php
+// (rcheevos) y RA Hub la pasa a RA por su HTTPS. Así la app no necesita TLS propio. Sólo 127.0.0.1.
+static void on_dorequest(int fd, const struct req *r) {
+  char err[256] = "";
+  struct buf b;
+  if(!r->local) { http_error(fd, 403, "solo desde la PS5 (127.0.0.1)"); return; }
+  long code = fetch(RA_URL "/dorequest.php", r->body, &b, err, sizeof err);
+  if(code < 0) http_error(fd, 502, err);
+  else http_send(fd, (int)code, "application/json", b.d ? b.d : "", b.d ? b.n : 0);
+  free(b.d);
+}
+
+// La imagen (badge) de un logro, para las apps de la PS5 que la quieren mostrar (gba2ps5 la pinta en el
+// juego). Sólo nombres de badge (dígitos, minúsculas, _): no es un proxy abierto. Sólo 127.0.0.1.
+static void on_badge(int fd, const struct req *r) {
+  char name[32] = "", url[128], err[256] = "";
+  struct buf b;
+  if(!r->local) { http_error(fd, 403, "solo desde la PS5 (127.0.0.1)"); return; }
+  if(!form_get(r->query, "u", name, sizeof name) || !name[0]) { http_error(fd, 400, "falta u"); return; }
+  for(const char *c = name; *c; c++)
+    if(!((*c >= '0' && *c <= '9') || (*c >= 'a' && *c <= 'z') || *c == '_')) { http_error(fd, 400, "badge invalido"); return; }
+  snprintf(url, sizeof url, "https://media.retroachievements.org/Badge/%s.png", name);
+  long code = fetch(url, NULL, &b, err, sizeof err);
+  if(code < 0) http_error(fd, 502, err);
+  else http_send(fd, (int)code, code == 200 ? "image/png" : "text/plain", b.d ? b.d : "", b.d ? b.n : 0);
+  free(b.d);
+}
+
+// El archivo de cheats de GBA de libretro-database con ese nombre (gba2ps5 lo pide desde el menú del
+// juego para actualizar sus cheats). Sólo nombres de archivo .cht de esa carpeta. Sólo 127.0.0.1.
+static void on_cheats(int fd, const struct req *r) {
+  char name[200] = "", url[700], err[256] = "";
+  struct buf b;
+  size_t n;
+  if(!r->local) { http_error(fd, 403, "solo desde la PS5 (127.0.0.1)"); return; }
+  if(!form_get(r->query, "f", name, sizeof name) || (n = strlen(name)) < 5 || strcmp(name + n - 4, ".cht") ||
+     strchr(name, '/') || strchr(name, '\\') || strstr(name, "..")) { http_error(fd, 400, "archivo invalido"); return; }
+  char *e = curl_easy_escape(NULL, name, 0);
+  if(!e) { http_error(fd, 500, "escape"); return; }
+  snprintf(url, sizeof url, "https://raw.githubusercontent.com/libretro/libretro-database/master/cht/Nintendo%%20-%%20Game%%20Boy%%20Advance/%s", e);
+  curl_free(e);
+  long code = fetch(url, NULL, &b, err, sizeof err);
+  if(code < 0) http_error(fd, 502, err);
+  else http_send(fd, (int)code, "text/plain; charset=utf-8", b.d ? b.d : "", b.d ? b.n : 0);
+  free(b.d);
+}
+
 static void route(int fd, const struct req *r) {
   if(http_asset(fd, r, assets, NASSETS) || lang_serve(fd, r)) return;
   if(req_is(r, "GET", "/api/state")) on_state(fd);
   else if(req_is(r, "GET", "/api/overview")) on_overview(fd, r);
   else if(req_is(r, "GET", "/session")) on_session(fd, r);
+  else if(req_is(r, "POST", "/dorequest")) on_dorequest(fd, r);
+  else if(req_is(r, "GET", "/badge")) on_badge(fd, r);
+  else if(req_is(r, "GET", "/cheats")) on_cheats(fd, r);
   else if(req_is(r, "POST", "/login")) on_login(fd, r);
   else if(req_is(r, "POST", "/key")) on_key(fd, r);
   else if(req_is(r, "POST", "/logout")) on_logout(fd);
