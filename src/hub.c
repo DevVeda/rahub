@@ -229,7 +229,7 @@ static void on_logout(int fd) {
   http_json(fd, 200, "{\"ok\":true}");
 }
 
-// Proxy para las apps de la PS5 (gba2ps5): mandan aquí el cuerpo de su petición a dorequest.php
+// Proxy para las apps de la PS5 (GB5): mandan aquí el cuerpo de su petición a dorequest.php
 // (rcheevos) y RA Hub la pasa a RA por su HTTPS. Así la app no necesita TLS propio. Sólo 127.0.0.1.
 static void on_dorequest(int fd, const struct req *r) {
   char err[256] = "";
@@ -241,7 +241,7 @@ static void on_dorequest(int fd, const struct req *r) {
   free(b.d);
 }
 
-// La imagen (badge) de un logro, para las apps de la PS5 que la quieren mostrar (gba2ps5 la pinta en el
+// La imagen (badge) de un logro, para las apps de la PS5 que la quieren mostrar (GB5 la pinta en el
 // juego). Sólo nombres de badge (dígitos, minúsculas, _): no es un proxy abierto. Sólo 127.0.0.1.
 static void on_badge(int fd, const struct req *r) {
   char name[32] = "", url[128], err[256] = "";
@@ -257,7 +257,7 @@ static void on_badge(int fd, const struct req *r) {
   free(b.d);
 }
 
-// El archivo de cheats de GBA de libretro-database con ese nombre (gba2ps5 lo pide desde el menú del
+// El archivo de cheats de GBA de libretro-database con ese nombre (GB5 lo pide desde el menú del
 // juego para actualizar sus cheats). Sólo nombres de archivo .cht de esa carpeta. Sólo 127.0.0.1.
 static void on_cheats(int fd, const struct req *r) {
   char name[200] = "", url[700], err[256] = "";

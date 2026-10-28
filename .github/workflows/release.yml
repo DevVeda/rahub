@@ -1,0 +1,30 @@
+# Push a tag (git tag v1.1.0 && git push origin v1.1.0): builds rahub.elf and rahub-test.elf and attaches
+# them to that tag's GitHub release (created as a draft if missing).
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: toolchain
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang-18 lld-18 llvm-18 pkg-config
+          # ps5-payload-sdk with the PacBrew libraries (curl, openssl), pinned
+          curl -fsSL -o sdk.tar.gz https://github.com/ps5-payload-dev/pacbrew-repo/releases/download/v0.41.1/ps5-payload-dev.tar.gz
+          echo "e811bc2e4676c5bb7f80a8fe928d2985dce599996a5ca6b54da3e72699287887  sdk.tar.gz" | sha256sum -c
+          mkdir -p "$HOME/sdk" && tar -xzf sdk.tar.gz -C "$HOME/sdk" && rm sdk.tar.gz
+          echo "PS5_PAYLOAD_SDK=$(dirname "$(dirname "$(find "$HOME/sdk" -path '*/toolchain/prospero.mk' | head -1)")")" >> "$GITHUB_ENV"
+          echo "LLVM_CONFIG=/usr/bin/llvm-config-18" >> "$GITHUB_ENV"
+      - run: make
+      - run: make test
+      - name: upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --draft --title "RA Hub $GITHUB_REF_NAME" --notes ""
+          gh release upload "$GITHUB_REF_NAME" build/rahub.elf build/rahub-test.elf --clobber

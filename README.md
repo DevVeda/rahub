@@ -60,7 +60,7 @@ curl 'http://127.0.0.1:8045/cheats?f=Sonic%20Battle%20(World)%20(Code%20Breaker)
 # cheat0_code = "…"
 ```
 
-Only `.cht` names from that folder are accepted (no paths). gba2ps5 uses it to refresh a game's cheats from its in-game menu.
+Only `.cht` names from that folder are accepted (no paths). [GB5](https://github.com/DevVeda/gb5) uses it to refresh a game's cheats from its in-game menu.
 
 **RA Hub Test** (`rahub-test.elf` in the release) is a reference client.
 
