@@ -89,7 +89,7 @@ async function start(msg = '') {
   if (st.error) msg = t('network');
   await useLang(st.lang);
   me = st.user || '';
-  $('sub').textContent = t('sub');
+  $('sub').textContent = t('sub') + (st.ps5user ? ' · ' + t('ps5user', st.ps5user) : ''); // la sesión es de este perfil
   $('port').textContent = st.port ? t('port', st.port) : '';
   $('actions').innerHTML = '';
   me ? showProfile(st.key, msg) : showLogin(msg);

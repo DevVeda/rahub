@@ -7,6 +7,9 @@
 #include <unistd.h>
 
 int sceSystemServiceParamGetInt(int param_id, int *value); // 1 = idioma del sistema
+int sceUserServiceInitialize(const void *params);
+int sceUserServiceGetForegroundUser(int32_t *user_id);
+int sceUserServiceGetUserName(int32_t user_id, char *name, size_t size);
 int sceAppInstUtilInitialize(void);
 int sceAppInstUtilTerminate(void);
 int sceAppInstUtilAppInstallAll(void *);
@@ -22,6 +25,19 @@ const char *ps5_locale(void) {
   int v = -1;
   if(sceSystemServiceParamGetInt(1, &v) || v < 0 || v >= (int)(sizeof tags / sizeof *tags)) return "en-US";
   return tags[v];
+}
+
+uint32_t ps5_user(char *name, size_t n) {
+  static int init;
+  int32_t u = -1;
+  if(!init) init = 1, sceUserServiceInitialize(NULL); // ponytail: dos hilos a la vez sólo lo llaman dos veces, sin daño
+  if(sceUserServiceGetForegroundUser(&u) || u == -1) u = -1;
+  if(name && n) {
+    name[0] = 0;
+    if(u != -1 && sceUserServiceGetUserName(u, name, n)) name[0] = 0;
+    for(char *c = name; *c; c++) if(*c == '"' || *c == '\\' || (unsigned char)*c < 32) *c = '?'; // va dentro de JSON
+  }
+  return (uint32_t)u;
 }
 
 void ps5_notify(const char *msg) {

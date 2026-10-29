@@ -27,7 +27,7 @@ function expect(ok, what) {
 
 // ---------- Hub ----------
 const hub = await load('web/hub.js', {
-  '/api/state': { lang, port: 8045, user: 'Scott', key: true },
+  '/api/state': { lang, port: 8045, user: 'Scott', key: true, ps5user: 'Ana' },
   '/api/overview': {
     error: '',
     summary: {
@@ -52,6 +52,7 @@ for (const m of must) expect((html + hub.port.textContent).includes(m), `falta "
 expect(!html.includes('<x>') && hub.motto.textContent === '“hi <b>”', 'texto de RA sin escapar');
 expect(html.indexOf('Newer') < html.indexOf('Ring'), 'logros fuera de orden');
 expect(hub.actions.innerHTML.includes('id=logout'), 'falta cerrar sesión');
+expect(hub.sub.textContent.includes('Ana'), 'falta el perfil de PS5');
 
 // ---------- App de prueba ----------
 const on = await load('web/test.js', { '/api/state': { lang, user: 'Scott' } });

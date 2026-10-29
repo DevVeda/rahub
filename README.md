@@ -11,6 +11,7 @@ A background payload that signs in to [retroachievements.org](https://retroachie
 ## Highlights
 
 - **Sign in once.** Apps get your session from `http://127.0.0.1:8045/session`.
+- **One account per PS5 profile.** Sign in from each profile; every app gets the account of the profile playing.
 - **Profile overview for the TV.** Points, rank, now playing, awards, recent games and achievements.
 - **In the Media tab** as **RA Hub**, or at `http://<ps5-ip>:8045` from any device.
 - **Few requests.** Data is cached and fetched only while the page is open.
@@ -30,19 +31,19 @@ Needs [Payload Manager](https://github.com/itsPLK/ps5-payload-manager) and an FT
 
 Everything below answers on the console itself only (127.0.0.1).
 
-**Session.** The signed-in user, so your app needn't ask for a password:
+**Session.** The signed-in user, so your app needn't ask for a password. Pass the PS5 user ID your app runs as (`sceUserServiceGetInitialUser`, hex) to get that profile's account; without `u`, the profile in the foreground:
 
 ```sh
-curl http://127.0.0.1:8045/session
+curl 'http://127.0.0.1:8045/session?u=10000001'
 # {"user":"YourName","token":"…","key":"…"}
 ```
 
 `token` is the Connect token (rcheevos' `rc_client_begin_login_with_token`), `key` the Web API key.
 
-**RetroAchievements requests.** Apps without TLS of their own can send their `dorequest.php` calls (rcheevos) through RA Hub, which forwards them to RetroAchievements over HTTPS and returns RA's answer. POSTs need the `X-RAHub` header:
+**RetroAchievements requests.** Apps without TLS of their own can send their `dorequest.php` calls (rcheevos) through RA Hub, which forwards them to RetroAchievements over HTTPS and returns RA's answer. Your `User-Agent` is passed on, so RetroAchievements sees your app (e.g. `MyEmu/1.0.0 (PS5) rcheevos/12.5`), not RA Hub; without one, RA Hub's is used. POSTs need the `X-RAHub` header:
 
 ```sh
-curl -X POST -H 'X-RAHub: 1' --data 'r=login2&u=YourName&t=…' http://127.0.0.1:8045/dorequest
+curl -X POST -H 'X-RAHub: 1' -A 'MyEmu/1.0.0 (PS5)' --data 'r=login2&u=YourName&t=…' http://127.0.0.1:8045/dorequest
 ```
 
 **Achievement badges.** The PNG for a badge name (rcheevos' `badge_name`):

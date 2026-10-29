@@ -1,6 +1,7 @@
 {
   "sub": "Hub de sesión para PS5",
   "port": "Sirviendo en puerto: {0}",
+  "ps5user": "Perfil de PS5: {0}",
   "user": "Usuario",
   "pass": "Contraseña",
   "login": "Iniciar sesión",

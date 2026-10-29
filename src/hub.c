@@ -27,7 +27,7 @@
 
 #define PORT 8045
 #define DATA_DIR "/data/rahub"
-#define SESSION_FILE DATA_DIR "/session"
+#define SESSION_FILE DATA_DIR "/session" // de antes de las sesiones por usuario: se la queda el primero que la pida
 
 EMBED(hub_html, "web/hub.html");
 EMBED(hub_css, "web/hub.css");
@@ -51,31 +51,60 @@ static const struct asset assets[] = {
 //             no repiten consultas. /session y /api/state no la tocan: una app nunca espera a RA.
 // Orden: cache_mx antes que ses_mx.
 static pthread_mutex_t ses_mx = PTHREAD_MUTEX_INITIALIZER, cache_mx = PTHREAD_MUTEX_INITIALIZER;
-static struct ra_session ses;
+static struct ra_session ses;           // la de la web: la del usuario de la PS5 en primer plano
+static uint32_t ses_uid = 0xfffffffeu;  // a quién pertenece ses (ninguno todavía)
 static const char *lang = "en"; // idioma de la consola con archivo (ver lang.h)
 
-// ---------- Sesión en disco: usuario, token y key, una por línea ("-" = sin key) ----------
+// ---------- Sesiones en disco, una por usuario de la PS5 (session.<id>): usuario, token y key, una por
+// línea ("-" = sin key). Cada perfil de la consola tiene su cuenta de RetroAchievements. ----------
 
-// Con ses_mx tomado. Se crea ya con permisos 0600 (el token no queda legible ni un instante).
+static void session_path(char *out, size_t n, uint32_t uid) { snprintf(out, n, DATA_DIR "/session.%08x", uid); }
+
+// Con ses_mx tomado. Se escribe aparte y se renombra: quien la lea a la vez nunca ve media sesión.
+// Se crea ya con permisos 0600 (el token no queda legible ni un instante).
 static void session_save(void) {
-  int fd = open(SESSION_FILE, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+  char path[64], tmp[72];
+  session_path(path, sizeof path, ses_uid);
+  snprintf(tmp, sizeof tmp, "%s.tmp", path);
+  int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC, 0600);
   FILE *f = fd < 0 ? NULL : fdopen(fd, "w");
-  if(!f) { perror("[rahub] " SESSION_FILE); if(fd >= 0) close(fd); return; }
+  if(!f) { perror("[rahub] session"); if(fd >= 0) close(fd); return; }
   fchmod(fd, 0600); // por si ya existía con otros permisos
   fprintf(f, "%s\n%s\n%s\n", ses.user, ses.token, ses.key[0] ? ses.key : "-");
-  fclose(f);
+  if(fclose(f) == 0) rename(tmp, path);
 }
 
-static void session_load(void) {
-  char u[64] = "", t[64] = "", k[64] = "";
-  FILE *f = fopen(SESSION_FILE, "r");
-  if(!f) return;
+// La sesión del usuario uid ({0} si no tiene). La de antes de las sesiones por usuario pasa a ser suya.
+static struct ra_session session_read(uint32_t uid) {
+  struct ra_session s = { 0 };
+  char path[64], u[64] = "", t[64] = "", k[64] = "";
+  session_path(path, sizeof path, uid);
+  if(uid != 0xffffffffu && access(path, F_OK) && !rename(SESSION_FILE, path)) printf("[rahub] la sesión de antes es ahora del usuario %08x\n", uid);
+  FILE *f = fopen(path, "r");
+  if(!f) return s;
   if(fscanf(f, "%63s %63s %63s", u, t, k) >= 2) {
-    sanitize(ses.user, sizeof ses.user, u);
-    sanitize(ses.token, sizeof ses.token, t);
-    sanitize(ses.key, sizeof ses.key, strcmp(k, "-") ? k : "");
+    sanitize(s.user, sizeof s.user, u);
+    sanitize(s.token, sizeof s.token, t);
+    sanitize(s.key, sizeof s.key, strcmp(k, "-") ? k : "");
   }
   fclose(f);
+  return s;
+}
+
+static void cache_drop(void);
+
+// La web es del usuario en primer plano: si cambió, su sesión pasa a ses y la caché (de otra cuenta) se va.
+static void follow_user(void) {
+  uint32_t uid = ps5_user(NULL, 0);
+  pthread_mutex_lock(&cache_mx);
+  pthread_mutex_lock(&ses_mx);
+  if(uid != ses_uid) {
+    ses_uid = uid;
+    ses = session_read(uid);
+    cache_drop();
+  }
+  pthread_mutex_unlock(&ses_mx);
+  pthread_mutex_unlock(&cache_mx);
 }
 
 // ---------- Caché de la API web: cada cosa con su vida según cuánto cambia ----------
@@ -149,14 +178,18 @@ static struct ra_session session_copy(void) {
 }
 
 static void on_state(int fd) {
-  char js[256];
+  char js[384], name[64];
+  follow_user();
+  ps5_user(name, sizeof name);
   struct ra_session s = session_copy();
-  snprintf(js, sizeof js, "{\"lang\":\"%s\",\"port\":%d,\"user\":\"%s\",\"key\":%s}", lang, PORT, s.user, s.key[0] ? "true" : "false");
+  snprintf(js, sizeof js, "{\"lang\":\"%s\",\"port\":%d,\"user\":\"%s\",\"key\":%s,\"ps5user\":\"%s\"}", lang, PORT, s.user,
+           s.key[0] ? "true" : "false", name);
   http_json(fd, 200, js);
 }
 
 static void on_overview(int fd, const struct req *r) {
   char err[128] = "";
+  follow_user();
   pthread_mutex_lock(&cache_mx);
   struct ra_session s = session_copy();
   char *js = NULL;
@@ -174,7 +207,9 @@ static void on_overview(int fd, const struct req *r) {
 static void on_session(int fd, const struct req *r) {
   char js[256];
   if(!r->local) { http_error(fd, 403, "solo desde la PS5 (127.0.0.1)"); return; }
-  struct ra_session s = session_copy();
+  // ?u=<id> (GB5): la sesión de ese usuario de la PS5. Sin él (apps de antes): la del usuario en primer plano.
+  char u[16] = "";
+  struct ra_session s = form_get(r->query, "u", u, sizeof u) ? session_read((uint32_t)strtoul(u, NULL, 16)) : session_read(ps5_user(NULL, 0));
   if(!s.user[0]) { http_error(fd, 404, "sin sesion"); return; }
   snprintf(js, sizeof js, "{\"user\":\"%s\",\"token\":\"%s\",\"key\":\"%s\"}", s.user, s.token, s.key);
   http_json(fd, 200, js);
@@ -190,6 +225,7 @@ static void on_login(int fd, const struct req *r) {
   else if(!ra_login(u, p, &s, err, sizeof err)) ok = 1;
   memset(p, 0, sizeof p);
   if(!ok) { http_error(fd, 200, err); return; }
+  follow_user();
   pthread_mutex_lock(&cache_mx);
   pthread_mutex_lock(&ses_mx);
   ses = s;
@@ -205,6 +241,7 @@ static void on_key(int fd, const struct req *r) {
   char k[128] = "";
   int ok;
   form_get(r->body, "k", k, sizeof k);
+  follow_user();
   pthread_mutex_lock(&cache_mx);
   pthread_mutex_lock(&ses_mx);
   if((ok = ses.user[0] != 0)) {
@@ -219,10 +256,13 @@ static void on_key(int fd, const struct req *r) {
 }
 
 static void on_logout(int fd) {
+  char path[64];
+  follow_user();
   pthread_mutex_lock(&cache_mx);
   pthread_mutex_lock(&ses_mx);
   memset(&ses, 0, sizeof ses);
-  unlink(SESSION_FILE);
+  session_path(path, sizeof path, ses_uid);
+  unlink(path);
   cache_drop();
   pthread_mutex_unlock(&ses_mx);
   pthread_mutex_unlock(&cache_mx);
@@ -235,7 +275,12 @@ static void on_dorequest(int fd, const struct req *r) {
   char err[256] = "";
   struct buf b;
   if(!r->local) { http_error(fd, 403, "solo desde la PS5 (127.0.0.1)"); return; }
-  long code = fetch(RA_URL "/dorequest.php", r->body, &b, err, sizeof err);
+  // RetroAchievements identifica al emulador por el User-Agent: va el de la app ("GB5/0.2.1 (PS5) …"),
+  // no el de RA Hub. Sólo texto simple de User-Agent; si no, el de RA Hub.
+  const char *ua = r->ua;
+  for(const char *c = ua; *c; c++)
+    if(!((*c >= 'A' && *c <= 'Z') || (*c >= 'a' && *c <= 'z') || (*c >= '0' && *c <= '9') || strchr(" ._/()+-", *c))) { ua = ""; break; }
+  long code = fetch_ua(RA_URL "/dorequest.php", r->body, ua[0] ? ua : NULL, &b, err, sizeof err);
   if(code < 0) http_error(fd, 502, err);
   else http_send(fd, (int)code, "application/json", b.d ? b.d : "", b.d ? b.n : 0);
   free(b.d);
@@ -295,10 +340,9 @@ int main(void) {
   curl_global_init(CURL_GLOBAL_DEFAULT);
   mkdir(DATA_DIR, 0755);
   lang = lang_pick(ps5_locale());
-  session_load();
   int s = http_listen(PORT);
   if(s < 0) return 1;
-  printf("[rahub] escuchando en :%d (%s)%s%s\n", PORT, lang, ses.user[0] ? ", sesión de " : "", ses.user);
+  printf("[rahub] escuchando en :%d (%s)\n", PORT, lang);
   ps5_install_webapp("RAHB00001", "RA Hub", PORT, icon_png, (size_t)(icon_png_end - icon_png));
   char msg[160], port[8];
   snprintf(port, sizeof port, "%d", PORT);

@@ -11,6 +11,7 @@
 struct req {
   const char *method, *path, *query, *body;
   int local; // viene de 127.0.0.1 (otra app de la PS5)
+  const char *ua; // su User-Agent ("" si no mandó)
 };
 
 // Archivo servido tal cual (ver EMBED).

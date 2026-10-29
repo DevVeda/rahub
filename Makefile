@@ -20,7 +20,7 @@ include $(PS5_PAYLOAD_SDK)/toolchain/prospero.mk
 need-host = $(if $(PS5_HOST),,$(error Falta la IP de la PS5: make $@ PS5_HOST=<ip> o ponla en config.mk))
 .DEFAULT_GOAL := all
 CFLAGS  := -Wall -O2 -Ibuild `$(PKG_CONFIG) --cflags libcurl`
-LDLIBS  := `$(PKG_CONFIG) --libs --static libcurl openssl` -lSceSystemService -lSceAppInstUtil
+LDLIBS  := `$(PKG_CONFIG) --libs --static libcurl openssl` -lSceSystemService -lSceAppInstUtil -lSceUserService
 COMMON  := src/http.c src/ra.c src/ps5.c src/util.c src/lang.c
 HEADERS := $(wildcard src/*.h)
 LANGS   := $(wildcard web/lang/*.json)

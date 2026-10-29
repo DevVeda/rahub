@@ -24,6 +24,10 @@ static size_t on_data(char *p, size_t sz, size_t nm, void *ud) {
 }
 
 long fetch(const char *url, const char *post, struct buf *b, char *err, size_t en) {
+  return fetch_ua(url, post, NULL, b, err, en);
+}
+
+long fetch_ua(const char *url, const char *post, const char *ua, struct buf *b, char *err, size_t en) {
   struct curl_blob ca = { (void *)ca_pem, (size_t)(ca_pem_end - ca_pem), CURL_BLOB_NOCOPY };
   long code = -1;
   CURL *c = curl_easy_init();
@@ -32,7 +36,7 @@ long fetch(const char *url, const char *post, struct buf *b, char *err, size_t e
   if(!c) { snprintf(err, en, "curl_easy_init"); return -1; }
   curl_easy_setopt(c, CURLOPT_URL, url);
   if(post) curl_easy_setopt(c, CURLOPT_POSTFIELDS, post);
-  curl_easy_setopt(c, CURLOPT_USERAGENT, "RAHub/1.0.0 (PS5)");
+  curl_easy_setopt(c, CURLOPT_USERAGENT, ua ? ua : "RAHub/1.0.0 (PS5)");
   curl_easy_setopt(c, CURLOPT_ACCEPT_ENCODING, ""); // gzip si RA lo da: menos tráfico para los dos
   curl_easy_setopt(c, CURLOPT_TIMEOUT, 20L);
   curl_easy_setopt(c, CURLOPT_CAINFO_BLOB, &ca);

@@ -109,7 +109,15 @@ static void handle(int fd, int local) {
   char *q = strchr(path, '?');
   if(q) *q++ = 0;
   char *csrf = strcasestr(buf, "\r\nX-RAHub:");
-  struct req r = { method, path, q ? q : "", body, local };
+  char ua[128] = "", *u = strcasestr(buf, "\r\nUser-Agent:");
+  if(u && u < body) {
+    u += 13;
+    while(*u == ' ') u++;
+    size_t k = 0;
+    while(u[k] && u[k] != '\r' && k < sizeof ua - 1) { ua[k] = u[k]; k++; }
+    ua[k] = 0;
+  }
+  struct req r = { method, path, q ? q : "", body, local, ua };
 
   if(!host_ok(buf, body)) http_error(fd, 403, "Host no permitido");
   else if(!strcmp(method, "POST") && !(csrf && csrf < body)) http_error(fd, 403, "falta X-RAHub");
