@@ -2,3 +2,4 @@ build/
 .DS_Store
 .claude
 config.mk
+TODO.md
