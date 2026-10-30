@@ -1,5 +1,9 @@
 # RA Hub
 
+> [!WARNING]
+> **This repository is archived and no longer maintained.** RA Hub keeps working, but it won't get updates.
+> Development continues in **[Veda Hub](https://github.com/DevVeda/VedaHub)**.
+
 **One RetroAchievements login for your whole jailbroken PS5.**
 
 A background payload that signs in to [retroachievements.org](https://retroachievements.org) once and shares the session with other homebrew apps.
